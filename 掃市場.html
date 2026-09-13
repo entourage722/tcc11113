@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>擺市場 — 許甫志工團</title>
-<meta name="description" content="擺市場排班登記，依地點查看擺市場日期並填寫姓名">
+<title>掃市場 — 許甫志工團</title>
+<meta name="description" content="掃市場排班登記，依地點查看掃市場日期並填寫姓名">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
@@ -135,8 +135,8 @@
   <a class="back-link" href="./index.html">← 回首頁</a>
 
   <header class="hero">
-    <h1>擺市場</h1>
-    <p>先找到地點，點開即可看到該地點的擺市場日期。點「+ 填入姓名」登記，填錯可點姓名旁的 × 取消。每個時段的名額依現場人數上限而定，額滿後該時段會自動關閉登記。</p>
+    <h1>掃市場</h1>
+    <p>先找到地點，點開即可看到該地點的掃市場日期。點「+ 填入姓名」登記，填錯可點姓名旁的 × 取消。每個時段的名額依現場人數上限而定，額滿後該時段會自動關閉登記。</p>
   </header>
 
   <div id="statusBar" class="status-bar"><span class="status-dot"></span><span id="statusText">連線中…</span></div>
@@ -233,7 +233,7 @@ function groupByLocation(rows){
     return g;
   });
 
-  // 依每個地點最早的擺市場日期排序（日期相同時再依地點名稱排序，避免順序不穩定）
+  // 依每個地點最早的掃市場日期排序（日期相同時再依地點名稱排序，避免順序不穩定）
   groups.sort(function(a, b) {
     var dateA = toSortableDate(a.minDate);
     var dateB = toSortableDate(b.minDate);
@@ -246,7 +246,7 @@ function groupByLocation(rows){
 
 function render(rows){
   if (!rows.length) {
-    locsEl.innerHTML = '<div class="empty-state">目前試算表中尚未建立任何擺市場排班列</div>';
+    locsEl.innerHTML = '<div class="empty-state">目前試算表中尚未建立任何掃市場排班列</div>';
     jumpTodayBtn.hidden = true;
     return;
   }
