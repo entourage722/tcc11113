@@ -265,6 +265,13 @@ function render(rows){
     return;
   }
   var today = todayIso();
+  // 只顯示今天及之後的日期，已經過去的日期不再顯示
+  rows = rows.filter(function(r){ return !r.date || r.date >= today; });
+  if (!rows.length) {
+    locsEl.innerHTML = '<div class="empty-state">目前沒有即將到來的排班，已結束的日期不再顯示</div>';
+    jumpTodayBtn.hidden = true;
+    return;
+  }
   var groups = groupByTitle(rows);
 
   locsEl.innerHTML = groups.map(function(g){
