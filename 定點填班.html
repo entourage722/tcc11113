@@ -14,6 +14,7 @@
       --primary: #0088cc;
       --primary-hover: #0077b3;
       --primary-alpha: rgba(0, 136, 204, 0.15);
+      --link: #4fb3f0;
       --danger: #d9534f;
       --danger-hover: #c9302c;
       --success: #5cb85c;
@@ -207,6 +208,28 @@
     .loc-body {
       padding: 0 14px 14px 14px;
       border-top: 1px solid var(--card-border);
+    }
+
+    /* Address (Google Maps link) */
+    .loc-address {
+      padding: 10px 0 2px 0;
+      font-size: 13px;
+      word-break: break-all;
+    }
+
+    .loc-address a {
+      color: var(--link);
+      text-decoration: underline;
+    }
+
+    .loc-address a::after {
+      content: " \2197";
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .loc-address a:hover {
+      color: #8fd0ff;
     }
 
     /* Date Rows */
@@ -434,13 +457,14 @@
     function groupByLocation(rows){
       var map = {}, order = [];
       rows.forEach(function(r){
-        if (!map[r.location]) { 
-          map[r.location] = { 
-            location: r.location, 
+        if (!map[r.location]) {
+          map[r.location] = {
+            location: r.location,
             dates: [],
-            minDate: r.date || ''
-          }; 
-          order.push(r.location); 
+            minDate: r.date || '',
+            address: ''
+          };
+          order.push(r.location);
         }
         map[r.location].dates.push(r);
       });
@@ -456,13 +480,19 @@
       var groups = order.map(function(loc){
         var g = map[loc];
         // 先對該地點內的所有日期排序
-        g.dates.sort(function(a, b){ 
-          return toSortableDate(a.date).localeCompare(toSortableDate(b.date)); 
+        g.dates.sort(function(a, b){
+          return toSortableDate(a.date).localeCompare(toSortableDate(b.date));
         });
-        
+
         // 確保 minDate 是該地點「最早」的那一個日期
         if (g.dates.length > 0) {
           g.minDate = g.dates[0].date || '';
+        }
+
+        // 地址屬於地點：取該地點所有排班列中第一個有值的地址
+        for (var i = 0; i < g.dates.length; i++) {
+          var a = g.dates[i].address;
+          if (a && String(a).trim()) { g.address = String(a).trim(); break; }
         }
         return g;
       });
@@ -528,6 +558,14 @@
           return s.dateLabel + t;
         }).join('、');
         var metaText = escapeHtml(dateLabels) + '・' + filledTotal + '/' + slotTotal + ' 已登記';
+
+        // 地址：優先使用試算表的地址，沒有地址時退回用地點名稱當搜尋字串，
+        // 點下去直接開啟 Google 地圖搜尋結果（新分頁）
+        var addrText = loc.address || loc.location;
+        var addrHtml =
+          '<div class="loc-address"><a href="https://maps.google.com/?q=' + encodeURIComponent(addrText) +
+          '" target="_blank" rel="noopener">📍 ' + escapeHtml(addrText) + '</a></div>';
+
         return (
           '<details class="loc-card" id="loc-' + escapeAttr(loc.location) + '" data-loc-name="' + escapeAttr(loc.location) + '">' +
             '<summary>' +
@@ -535,7 +573,7 @@
               '<span class="loc-title-wrap"><span class="loc-title">' + escapeHtml(loc.location) + '</span>' +
               '<div class="loc-meta' + (hasToday ? ' has-today' : '') + '">' + metaText + (hasToday ? '・含今天' : '') + '</div></span>' +
             '</summary>' +
-            '<div class="loc-body">' + dateRows + '</div>' +
+            '<div class="loc-body">' + addrHtml + dateRows + '</div>' +
           '</details>'
         );
       }).join('');
