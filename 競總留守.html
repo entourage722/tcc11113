@@ -104,7 +104,9 @@
   .empty-name{color:var(--ink-faint);font-size:13px;}
   .empty-window{color:var(--ink-faint);font-size:13px;text-align:center;padding:30px 0;}
 
-  .claimed-name{font-size:14px;font-weight:600;padding:6px 12px;border-radius:999px;background:var(--surface-2);}
+  .claimed-name{display:inline-flex;align-items:center;gap:2px;font-size:14px;font-weight:600;padding:4px 4px 4px 12px;border-radius:999px;background:var(--surface-2);}
+  .claimed-name .btn.ghost{padding:2px 8px;font-size:14px;line-height:1;}
+  .slot-count{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-faint);}
   .btn{font-family:inherit;font-size:13px;font-weight:600;border-radius:999px;padding:7px 15px;cursor:pointer;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);}
   .btn:hover{border-color:var(--ink-soft);}
   .btn:disabled{opacity:.5;cursor:not-allowed;}
@@ -132,14 +134,14 @@
   <header class="hero">
     <span class="eyebrow">競選總部留守</span>
     <h1>競總留守班表</h1>
-    <p>點選想認領的班次並輸入姓名即可。每個班次僅能有一人認領，若填錯可自行取消。</p>
+    <p>點選想登記的班次並輸入姓名即可。每個班次可多人登記，若填錯可點名字旁的 × 自行取消。</p>
   </header>
 
   <div class="legend">
     <span class="item"><span class="swatch" style="background:var(--shift-1)"></span>上午 09:00–13:00</span>
     <span class="item"><span class="swatch" style="background:var(--shift-2)"></span>下午 13:00–17:00</span>
   </div>
-  <div class="scope-note">僅顯示本週與下週的平日班次，六、日暫不開放填班</div>
+  <div class="scope-note">顯示本週與下週的班次（含例假日）</div>
 
   <div id="statusBar" class="status-bar"><span class="status-dot"></span><span id="statusText">連線中…</span></div>
 
@@ -152,7 +154,7 @@
 
 <dialog id="claimDialog" class="modal">
   <form method="dialog" class="modal-body" id="claimForm">
-    <h3 id="claimTitle">認領班次</h3>
+    <h3 id="claimTitle">登記班次</h3>
     <p id="claimSub"></p>
     <input type="text" id="claimName" placeholder="姓名" maxlength="20" style="width:100%;font-family:inherit;font-size:14px;border:1px solid var(--line-strong);border-radius:var(--radius-sm);padding:9px 12px;background:var(--surface);color:var(--ink);margin-bottom:14px;">
     <div class="modal-actions">
@@ -198,7 +200,7 @@ function setStatus(kind, text){
   statusText.textContent = text;
 }
 
-// ==== 僅顯示本週＋下週的平日（週一～週五），六日先不開放 ====
+// ==== 顯示本週＋下週（共 14 天），含六日 ====
 function parseIsoDate(iso){
   var parts = iso.split('-');
   return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
@@ -220,8 +222,6 @@ function filterRows(rows){
   var win = getDisplayWindow();
   return rows.filter(function(r){
     var d = parseIsoDate(r.date);
-    var dow = d.getDay();
-    if (dow === 0 || dow === 6) return false; // 先不開放假日
     return d >= win.start && d <= win.end;
   });
 }
@@ -254,19 +254,17 @@ function render(rows){
     var isToday = day.date === today;
     var slots = day.stops.map(function(s){
       var meta = SHIFT_META[s.shift] || {color:'var(--ink-faint)'};
-      var stateHtml;
-      if (s.name) {
-        stateHtml =
-          '<span class="claimed-name">' + escapeHtml(s.name) + '</span>' +
-          '<button class="btn ghost" data-act="clear" data-date="' + s.date + '" data-shift="' + s.shift + '" data-name="' + escapeAttr(s.name) + '">取消</button>';
-      } else {
-        stateHtml =
-          '<span class="empty-name">尚未認領</span>' +
-          '<button class="btn primary" data-act="claim" data-date="' + s.date + '" data-shift="' + s.shift + '" data-time="' + escapeAttr(s.time) + '" data-label="' + escapeAttr(day.dateLabel) + '">認領</button>';
-      }
+      var names = getNames(s);
+      var chips = names.map(function(n){
+        return '<span class="claimed-name">' + escapeHtml(n) +
+          '<button class="btn ghost" type="button" data-act="clear" data-date="' + s.date + '" data-shift="' + s.shift + '" data-name="' + escapeAttr(n) + '" aria-label="取消 ' + escapeAttr(n) + '">×</button></span>';
+      }).join('');
+      var stateHtml =
+        (names.length ? chips : '<span class="empty-name">尚無人登記</span>') +
+        '<button class="btn primary" data-act="claim" data-date="' + s.date + '" data-shift="' + s.shift + '" data-time="' + escapeAttr(s.time) + '" data-label="' + escapeAttr(day.dateLabel) + '">+ 登記</button>';
       return (
         '<div class="slot-row">' +
-          '<span class="slot-tag"><span class="swatch" style="background:' + meta.color + '"></span>' + s.shift + '<span class="t">' + s.time + '</span></span>' +
+          '<span class="slot-tag"><span class="swatch" style="background:' + meta.color + '"></span>' + s.shift + '<span class="t">' + s.time + '</span>' + (names.length ? '<span class="slot-count">' + names.length + ' 人</span>' : '') + '</span>' +
           '<span class="slot-state">' + stateHtml + '</span>' +
         '</div>'
       );
@@ -283,6 +281,12 @@ function render(rows){
   jumpTodayBtn.hidden = !todayEl;
 }
 
+// 後端若回傳 names 陣列就直接用；舊格式只有 name 時，以「、」或逗號拆成多人
+function getNames(s){
+  var list = Array.isArray(s.names) ? s.names : String(s.name || '').split(/[、,，]/);
+  return list.map(function(n){ return String(n || '').trim(); }).filter(Boolean);
+}
+
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, function(c){
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
@@ -292,7 +296,7 @@ function escapeAttr(s){ return escapeHtml(s); }
 
 var lastRows = [];
 var didInitialScroll = false;
-var CACHE_KEY = 'jingzong_liushou_cache_v1';
+var CACHE_KEY = 'jingzong_liushou_cache_v2';
 
 function readCache(){
   try {
@@ -362,7 +366,7 @@ daysEl.addEventListener('click', function(e){
   var act = btn.getAttribute('data-act');
   if (act === 'claim') {
     pendingRow = { date: btn.getAttribute('data-date'), shift: btn.getAttribute('data-shift') };
-    claimTitle.textContent = '認領班次';
+    claimTitle.textContent = '登記班次';
     claimSub.textContent = btn.getAttribute('data-label') + ' ' + btn.getAttribute('data-shift') + ' ' + btn.getAttribute('data-time');
     claimName.value = '';
     dialog.showModal();
@@ -404,8 +408,11 @@ function submitAction(payload, btnEl){
     .then(function(data){
       if (!data.ok) {
         var msg = '操作失敗';
-        if (data.error === 'already_taken') msg = '這個班次剛被 ' + (data.takenBy || '別人') + ' 認領走了，畫面已更新';
-        else if (data.error === 'name_mismatch') msg = '這個班次不是你認領的，無法取消';
+        if (data.error === 'duplicate_name') msg = '這個姓名已經登記過這個班次了';
+        else if (data.error === 'full') msg = '這個班次已經額滿，畫面已更新';
+        else if (data.error === 'empty_name') msg = '請輸入姓名';
+        else if (data.error === 'already_taken') msg = '後端還是單人模式，請更新 Apps Script 才能多人登記';
+        else if (data.error === 'name_mismatch') msg = '這個班次沒有這個姓名的登記，無法取消';
         else if (data.error === 'busy_try_again') msg = '系統忙碌，請稍後再試一次';
         else if (data.error === 'not_found') msg = '找不到這個日期的班次列，請確認試算表';
         else if (data.error) msg = '操作失敗：' + data.error;
