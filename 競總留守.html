@@ -26,6 +26,7 @@
     --cta-text:#F4F7F1;
     --shift-1:#2a78d6; /* 上午 */
     --shift-2:#eb6834; /* 下午 */
+    --shift-3:#7a52c7; /* 晚上 */
     --radius-lg:20px;
     --radius-md:14px;
     --radius-sm:9px;
@@ -42,7 +43,7 @@
       --songshan-tint-strong:#3B4C28; --songshan-text:#B7D69A;
       --xinyi-tint-strong:#544117; --xinyi-text:#E3BE72;
       --cta:#3FA080; --cta-text:#0E1410;
-      --shift-1:#3987e5; --shift-2:#d95926;
+      --shift-1:#3987e5; --shift-2:#d95926; --shift-3:#9471db;
       --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 10px 28px -14px rgba(0,0,0,0.6);
       --danger:#D9714F;
       --today-ring:#3FA080;
@@ -56,7 +57,7 @@
     --songshan-tint-strong:#3B4C28; --songshan-text:#B7D69A;
     --xinyi-tint-strong:#544117; --xinyi-text:#E3BE72;
     --cta:#3FA080; --cta-text:#0E1410;
-    --shift-1:#3987e5; --shift-2:#d95926;
+    --shift-1:#3987e5; --shift-2:#d95926; --shift-3:#9471db;
     --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 10px 28px -14px rgba(0,0,0,0.6);
     --danger:#D9714F;
     --today-ring:#3FA080;
@@ -140,6 +141,7 @@
   <div class="legend">
     <span class="item"><span class="swatch" style="background:var(--shift-1)"></span>上午 09:00–13:00</span>
     <span class="item"><span class="swatch" style="background:var(--shift-2)"></span>下午 13:00–17:00</span>
+    <span class="item"><span class="swatch" style="background:var(--shift-3)"></span>晚上 18:00–20:00</span>
   </div>
   <div class="scope-note">顯示本週與下週的班次（含例假日）</div>
 
@@ -172,7 +174,8 @@ var API_TYPE = 'hq';
 
 var SHIFT_META = {
   '上午': {color:'var(--shift-1)', order:0},
-  '下午': {color:'var(--shift-2)', order:1}
+  '下午': {color:'var(--shift-2)', order:1},
+  '晚上': {color:'var(--shift-3)', order:2}
 };
 
 var statusBar = document.getElementById('statusBar');
@@ -235,7 +238,7 @@ function groupByDate(rows){
   order.sort();
   return order.map(function(d){
     var g = map[d];
-    g.stops.sort(function(a,b){ return SHIFT_META[a.shift].order - SHIFT_META[b.shift].order; });
+    g.stops.sort(function(a,b){ function ord(x){ return SHIFT_META[x.shift] ? SHIFT_META[x.shift].order : 9; } return ord(a) - ord(b); });
     return g;
   });
 }
